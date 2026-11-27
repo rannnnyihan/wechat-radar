@@ -63,6 +63,11 @@ button{font-family:inherit;border:none;cursor:pointer;background:none;color:inhe
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
 .hint{font-size:11.5px;color:var(--mute);line-height:1.7}
 
+/* ===== 空信息源占位 ===== */
+.empty-source{background:var(--card);border:1.5px dashed var(--line);border-radius:var(--r-lg);padding:34px 22px;text-align:center;margin-bottom:14px}
+.empty-source .ic-badge{width:52px;height:52px;border-radius:16px;background:var(--tint);color:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.empty-source h3{font-size:15px;font-weight:650;margin-bottom:8px}
+.empty-source p{font-size:12px;color:var(--mute);line-height:1.8}
 /* ===== 数据概览 ===== */
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:4px}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow);padding:13px 8px;text-align:center}
@@ -311,24 +316,33 @@ const rv = a => String(a.r).includes('万')?parseFloat(a.r)*10000:parseFloat(a.r
 let cur = 0;
 const S = () => D.sources[cur];
 
-document.getElementById('mDate').textContent = S().dataUntil;
+document.getElementById('mDate').textContent = S().dataUntil || '接入中';
 document.getElementById('mSrc').textContent = S().name;
 document.getElementById('ftDate').textContent = '页面生成时间 ' + D.generatedAt + ' · 数据更新后最新链接见豆包对话';
 document.getElementById('insightText').textContent = S().insight;
 
 /* 数据概览 */
 function renderStats(){
-  const maxR = Math.max(...S().articles.map(rv));
+  const maxR = S().articles.length? Math.max(...S().articles.map(rv)) : 0;
   const maxTxt = maxR>=10000? (maxR/10000).toFixed(1)+'万' : String(maxR);
   document.getElementById('statsBar').innerHTML = `
     <div class="stat"><div class="num">${S().total}</div><div class="lb">收录文章</div></div>
-    <div class="stat"><div class="num">${S().months[S().months.length-1].n}</div><div class="lb">本月发文</div></div>
+    <div class="stat"><div class="num">${S().months.length?S().months[S().months.length-1].n:'—'}</div><div class="lb">本月发文</div></div>
     <div class="stat"><div class="num">${maxTxt}</div><div class="lb">单篇最高阅读</div></div>`;
 }
 
 /* 头条焦点 */
 function renderHero(){
   const a = S().articles[0];
+  if(!a){
+    document.getElementById('heroBox').innerHTML = `
+      <div class="empty-source">
+        <div class="ic-badge">${ic('rss',24)}</div>
+        <h3>「${esc(S().name)}」接入中</h3>
+        <p>Qovia 数据接口暂时无法返回该公众号的文章列表。<br>每日任务会自动重试，接口恢复后自动抓取文章<br>并生成 AI 总结与周报，无需手动操作。</p>
+      </div>`;
+    return;
+  }
   document.getElementById('heroBox').innerHTML = `
     <div class="hero">
       <span class="hero-tag">${ic('news',11)} 最新发布 · ${a.d}</span>
@@ -358,8 +372,9 @@ function cell(a, maxR){
   </a>`;
 }
 function renderFeed(){
-  const maxR = Math.max(...S().articles.map(rv));
+  const maxR = S().articles.length? Math.max(...S().articles.map(rv)) : 0;
   const list = S().articles.slice(1,10);
+  if(!S().articles.length){ document.getElementById('feedList').innerHTML=''; document.getElementById('feedCount').textContent='待接入'; return; }
   document.getElementById('feedList').innerHTML = list.map(a=>cell(a,maxR)).join('');
   document.getElementById('feedCount').textContent = `最新10篇 / 共 ${S().total} 篇`;
 }
@@ -374,7 +389,7 @@ function renderSrcBars(){
 function setSource(i){
   if(i===cur) return;
   cur = i;
-  document.getElementById('mDate').textContent = S().dataUntil;
+  document.getElementById('mDate').textContent = S().dataUntil || '接入中';
   document.getElementById('mSrc').textContent = S().name;
   document.getElementById('insightText').textContent = S().insight;
   renderSrcBars(); renderStats(); renderHero(); renderFeed(); renderWeek(); renderChart(); renderHot();
@@ -388,6 +403,10 @@ function setWeek(w){ wk=w;
   renderWeek();
 }
 function renderWeek(){
+  if(!S().articles.length){
+    document.getElementById('weeklyBody').innerHTML = '<div class="card"><p class="hint" style="text-align:center;padding:14px 0">周报将在文章数据接入后自动生成</p></div>';
+    return;
+  }
   const w = wk==='this'? S().weekThis : S().weekLast;
   document.getElementById('weeklyBody').innerHTML = `
     <div class="card summary-card"><h3>${ic('spark',15)} ${esc(w.title)}</h3><p>${esc(w.text)}</p></div>
@@ -404,6 +423,7 @@ function renderWeek(){
 
 /* 洞察 */
 function renderChart(){
+  if(!S().months.length){ document.getElementById('chart').innerHTML = '<p class="hint" style="margin:auto;padding:30px 0">数据接入后展示趋势</p>'; return; }
   const maxN=Math.max(...S().months.map(m=>m.n)), maxR=Math.max(...S().months.map(m=>m.r));
   document.getElementById('chart').innerHTML = S().months.map(m=>`
     <div class="bar-g" title="${m.m}: ${m.n}篇 / ${(m.r/10000).toFixed(1)}万阅读">
@@ -415,6 +435,7 @@ function renderChart(){
     </div>`).join('');
 }
 function renderHot(){
+  if(!S().hot.length){ document.getElementById('hotList').innerHTML = '<p class="hint" style="text-align:center;padding:12px 0">数据接入后展示热文榜</p>'; return; }
   document.getElementById('hotList').innerHTML = S().hot.map((a,i)=>`
     <div class="hot-art">
       <span class="rank ${i<3?'rank-'+(i+1):'rank-n'}">${i+1}</span>

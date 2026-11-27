@@ -48,3 +48,30 @@ python3 scripts/gen_page.py          # 生成 output/公众号情报站.html
 ## License
 
 MIT
+
+
+---
+
+## v1.2 更新（2026-11-27）
+
+- **新增 `/v1/search` 抓取路径（推荐）**：`POST /v1/search` 以 `query`（关键词）+ `author`（公众号名）+ `platforms:["wechat"]` 直接搜索文章，**不需要 gh_ 内部 ID**，且返回正文摘要（`text`），AI 总结质量更高。在 `config.json` 中配置：
+
+```json
+"search_method": {
+  "人民日报": {"query": ["中国", "新闻", "社会"], "author": "人民日报"},
+  "赢商网": {"query": ["商业", "购物中心", "零售"], "author": "赢商网"},
+  "交大野协": {"query": ["户外", "徒步", "登山", "露营"], "author": "交大野协"}
+}
+```
+
+- 仅保留 `author.name` 精确匹配的条目（自动排除人民日报理论/评论等矩阵号、赢商网地方站）；按 URL 去重合并，支持 `since` 增量。
+- raw 路径保留：`account_search` 返回微信号格式时自动回退 `account_search_v2` 换算 `gh_` ID；失败给明确提示且不写空文件。
+- 页面模板支持空信息源「接入中」占位、多源筛选 Tab、阅读数缺失显示「—」。
+
+### 抓取路径选择建议
+
+| 情况 | 路径 |
+|---|---|
+| 有 gh_ 完整档案的号（如绿电直连） | raw articles（带阅读数标签） |
+| 其他号（人民日报/赢商网/交大野协等） | /v1/search + author 过滤 |
+| 索引完全未收录的号（如大单网） | 提供文章链接，走单篇接口 article_metrics / article_content_v3 |

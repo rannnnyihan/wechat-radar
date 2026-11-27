@@ -46,3 +46,9 @@ wechat-radar/
 └── assets/
     └── page_template.html    # 展示页模板（设计规范/多源筛选/配置页）
 ```
+
+
+## 抓取路径（v1.2）
+
+优先使用 `POST https://api.qovia.ai/v1/search`：`query` 必填（该号文章常见主题词，可多个轮询），`author` 为公众号精确名称，`platforms:["wechat"]`，`limit` 10/20，`page` 翻页，可选 `since`/`until`（YYYY-MM-DD）。返回 `data.items[]` 含 title/text(正文)/url/published_at/author.name。仅保留 author.name 精确匹配项。此路径无需 gh_ ID，大多数公众号适用。
+raw 路径（account_search + articles）仅用于有 gh_ 完整档案的号，可带阅读数。索引未收录的号改用单篇接口（article_metrics/article_content_v3，凭文章 URL 实时抓取）。

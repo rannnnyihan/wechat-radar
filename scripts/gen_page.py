@@ -82,7 +82,7 @@ def build_source(name, out_dir):
         "months": months,
         "weekThis": week_pack("weekThis", this_monday, "本周综述"),
         "weekLast": week_pack("weekLast", last_monday, "上周综述"),
-        "insight": summ.get("insight", f"共收录 {len(arts)} 篇文章。AI 行业观察可在 summaries/{name}.json 的 insight 字段补充。"),
+        "insight": summ.get("insight", f"共收录 {len(arts)} 篇文章。AI 行业观察可在 summaries/{name}.json 的 insight 字段补充。" if arts else "该信息源正在接入中，接口恢复后将自动抓取文章并生成 AI 行业观察。"),
     }
 
 
