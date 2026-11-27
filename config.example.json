@@ -1,0 +1,10 @@
+{
+  "qovia_key": "sk-qovia-在这里填你的Key",
+  "sources": ["公众号名称一", "公众号名称二"],
+  "output_dir": "output",
+  "fetch": {
+    "max_pages": 30,
+    "page_size": 20,
+    "with_metrics_for_hot": false
+  }
+}

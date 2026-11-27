@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-canvas-width="390" data-canvas-height="844">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0A8A62">
+<title>公众号情报站 · AI监测与总结</title>
+<style>
+@font-face{
+  font-family:"Source Han Sans SC VF";
+  src:url("https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/infinite-canvas/fonts/v1/source-han-sans-sc-vf/source-han-sans-sc-vf.otf") format("opentype");
+  font-weight:250 900;
+  font-style:normal;
+}
+/* ===== Design Tokens ===== */
+:root{
+  --ink:#14231C; --sub:#56675E; --mute:#93A29A;
+  --line:#E7EEE9; --bg:#F4F7F5; --card:#FFFFFF;
+  --accent:#0A8A62; --accent-2:#10B981; --tint:#EAF5EF; --tint-2:#F2F8F4;
+  --warn:#D97706; --warn-bg:#FDF3E3;
+  --grad:linear-gradient(150deg,#0E9F6E 0%,#0A8A62 55%,#066B4C 100%);
+  --shadow:0 1px 2px rgba(20,35,28,.04),0 4px 16px rgba(20,35,28,.05);
+  --r-lg:20px; --r-md:16px; --r-sm:12px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root{--ink:#E6ECE8;--sub:#9CAFA5;--mute:#64756C;--line:#22322A;--bg:#0D1512;--card:#15201B;
+    --accent:#3ECF9A;--accent-2:#2BC687;--tint:#123325;--tint-2:#16241D;
+    --warn:#F0B25C;--warn-bg:#33270F;
+    --grad:linear-gradient(150deg,#0B7A56 0%,#086147 55%,#054534 100%);
+    --shadow:0 2px 12px rgba(0,0,0,.35);}
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--ink);font-family:"Source Han Sans SC VF",-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",system-ui,sans-serif;font-size:14px;line-height:1.65;padding-bottom:calc(84px + var(--safe-b));max-width:640px;margin:0 auto}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;cursor:pointer;background:none;color:inherit}
+.ic{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;vertical-align:-3px}
+
+/* ===== 品牌头部 ===== */
+.brand{background:var(--grad);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 22px) 20px 22px;border-radius:0 0 24px 24px;position:relative;overflow:hidden}
+.brand::before{content:'';position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 65%);top:-110px;right:-60px}
+.brand-row{display:flex;align-items:center;gap:12px;position:relative}
+.logo-badge{width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center}
+.brand-name{font-size:20px;font-weight:700;letter-spacing:.5px}
+.brand-sub{font-size:11.5px;opacity:.8;margin-top:1px}
+.ai-pill{margin-left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);border-radius:99px;padding:5px 11px;font-size:10.5px;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.brand-meta{position:relative;margin-top:14px;font-size:11px;opacity:.85;display:flex;align-items:center;gap:6px}
+
+/* ===== 信息源筛选条 ===== */
+.src-bar{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;margin-bottom:14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.src-bar::-webkit-scrollbar{display:none}
+.src-pill{flex-shrink:0;display:inline-flex;align-items:center;gap:5px;padding:7px 15px;border-radius:99px;font-size:12.5px;font-weight:500;background:var(--card);border:1px solid var(--line);color:var(--sub)}
+.src-pill.on{background:var(--grad);color:#fff;border-color:transparent;font-weight:600;box-shadow:0 3px 10px rgba(10,138,98,.22)}
+.src-pill.add{border-style:dashed;color:var(--accent)}
+/* ===== 布局 ===== */
+.page{display:none;padding:16px 16px 8px}
+.page.active{display:block}
+.sec-head{display:flex;align-items:center;gap:8px;margin:20px 2px 12px}
+.sec-head:first-child{margin-top:2px}
+.sec-head .t{font-size:16px;font-weight:700;display:flex;align-items:center;gap:7px;color:var(--ink)}
+.sec-head .t svg{color:var(--accent)}
+.sec-head .extra{margin-left:auto;font-size:11px;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+.hint{font-size:11.5px;color:var(--mute);line-height:1.7}
+
+/* ===== 数据概览 ===== */
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:4px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow);padding:13px 8px;text-align:center}
+.stat .num{font-size:21px;font-weight:750;color:var(--accent);line-height:1.25;font-variant-numeric:tabular-nums}
+.stat .lb{font-size:10.5px;color:var(--mute);margin-top:3px}
+
+/* ===== 头条焦点卡 ===== */
+.hero{background:var(--grad);border-radius:var(--r-lg);padding:20px 18px;color:#fff;box-shadow:0 8px 24px rgba(10,138,98,.28);margin-bottom:6px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 65%);bottom:-80px;right:-40px}
+.hero-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.18);border-radius:99px;padding:4px 11px;font-size:10.5px;font-weight:500;margin-bottom:12px}
+.hero h2{font-size:18px;font-weight:700;line-height:1.5;margin-bottom:12px}
+.hero-ai{font-size:12.5px;line-height:1.75;opacity:.88;border-left:2px solid rgba(255,255,255,.4);padding-left:10px;margin-bottom:16px}
+.hero-foot{display:flex;align-items:center;gap:14px;font-size:12px;position:relative;z-index:1}
+.hero-foot .m{display:flex;align-items:center;gap:5px;opacity:.9}
+.hero-btn{margin-left:auto;background:#fff;color:#0A8A62;border-radius:99px;padding:7px 15px;font-size:12px;font-weight:650;display:inline-flex;align-items:center;gap:4px}
+
+/* ===== 文章列表（紧凑单元） ===== */
+.cell{display:block;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow);padding:15px 16px 13px;margin-bottom:12px}
+.cell:active{background:var(--tint-2)}
+.cell h3{font-size:15px;font-weight:650;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cell h3 .hot-mark{color:var(--warn);margin-right:4px}
+.ai-line{margin-top:9px;padding-left:10px;border-left:2px solid var(--accent-2);font-size:12.5px;color:var(--sub);line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ai-line b{color:var(--accent);font-weight:600;font-size:11px;margin-right:5px}
+.cell-meta{display:flex;align-items:center;gap:12px;margin-top:11px;font-size:11px;color:var(--mute)}
+.cell-meta .m{display:flex;align-items:center;gap:4px}
+.cell-meta .go{margin-left:auto;width:26px;height:26px;border-radius:50%;background:var(--tint);color:var(--accent);display:flex;align-items:center;justify-content:center}
+.badge-o{font-size:9.5px;color:var(--sub);background:var(--tint-2);border:1px solid var(--line);padding:1px 6px;border-radius:5px}
+.expand-btn{width:100%;padding:13px;border-radius:var(--r-md);background:var(--card);border:1.5px dashed var(--line);color:var(--accent);font-size:13px;font-weight:600;margin:4px 0 10px;display:flex;align-items:center;justify-content:center;gap:6px}
+
+/* ===== 周报 ===== */
+.seg{display:inline-flex;background:var(--tint);border-radius:12px;padding:4px;gap:3px}
+.seg button{padding:6px 18px;border-radius:9px;font-size:12.5px;color:var(--sub);font-weight:500}
+.seg button.on{background:var(--card);color:var(--accent);font-weight:650;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.summary-card{background:var(--grad);color:#fff;border:none;padding:20px 18px;border-radius:var(--r-lg);box-shadow:0 8px 24px rgba(10,138,98,.28)}
+.summary-card h3{font-size:15px;font-weight:700;margin-bottom:10px;display:flex;gap:7px;align-items:center}
+.summary-card p{font-size:13px;line-height:1.85;opacity:.93}
+.topic-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.topic-name::before{content:'';width:4px;height:15px;border-radius:4px;background:var(--grad)}
+.topic-name span{font-size:10.5px;color:var(--accent);background:var(--tint);border-radius:99px;padding:2px 9px;font-weight:500}
+.wk-art{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px;align-items:flex-start}
+.wk-art:last-child{border:none;padding-bottom:2px}
+.wk-art .no{color:var(--mute);font-size:11px;padding-top:3px;font-variant-numeric:tabular-nums}
+.wk-art .r{color:var(--mute);white-space:nowrap;font-size:10.5px;margin-left:auto;text-align:right;line-height:1.6;padding-top:2px}
+.wk-art a{font-size:12.5px;line-height:1.55;font-weight:550;display:block}
+.wk-art .hint{margin-top:3px;font-size:11px}
+
+/* ===== 洞察 ===== */
+.chart{display:flex;align-items:flex-end;gap:6px;height:150px;padding:8px 2px 0}
+.bar-g{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%}
+.bar{width:100%;max-width:30px;border-radius:5px 5px 2px 2px;background:var(--grad);min-height:4px}
+.bar.reads{background:#B9DCCB;opacity:.9}
+.bar-lb{font-size:9px;color:var(--mute);white-space:nowrap}
+.legend{display:flex;gap:16px;font-size:11px;color:var(--sub);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.card h3.ct{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.card h3.ct svg{color:var(--accent)}
+.insight-text{font-size:13px;line-height:1.9;color:var(--sub)}
+.rank{width:24px;height:24px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
+.rank-1{background:linear-gradient(135deg,#F2B32C,#E8960C)}
+.rank-2{background:linear-gradient(135deg,#C3CFD8,#93A5B1)}
+.rank-3{background:linear-gradient(135deg,#D3A181,#AF744D)}
+.rank-n{background:var(--tint);color:var(--sub)}
+.hot-art{display:flex;gap:11px;padding:13px 0;border-bottom:1px solid var(--line)}
+.hot-art:last-child{border:none;padding-bottom:2px}
+.hot-art .body{flex:1}
+.hot-art .body a{font-weight:600;font-size:13px;line-height:1.55;display:block}
+.hot-art .meta{font-size:11px;color:var(--mute);margin:5px 0 4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.hot-art .ai{font-size:12px;color:var(--sub);line-height:1.65}
+.formula{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.65;color:var(--sub)}
+.formula:last-child{border:none;padding-bottom:2px}
+.formula .tag{background:var(--tint);color:var(--accent);border-radius:8px;padding:3px 10px;font-size:11.5px;font-weight:600;white-space:nowrap;margin-top:1px}
+
+/* ===== 配置 ===== */
+.cfg-label{font-size:12px;color:var(--sub);font-weight:650;margin:18px 0 8px;display:flex;align-items:center;gap:6px}
+.cfg-label:first-child{margin-top:0}
+.cfg-label svg{color:var(--accent)}
+.cfg-input{width:100%;padding:12px 14px;border-radius:var(--r-sm);border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px;outline:none;font-family:inherit}
+.cfg-input:focus{border-color:var(--accent-2)}
+.key-row{display:flex;gap:8px}
+.apply-link{margin-left:auto;font-size:11px;color:var(--accent);font-weight:550;display:inline-flex;align-items:center;gap:3px;background:var(--tint);padding:4px 11px;border-radius:99px}
+.key-row .cfg-input{flex:1}
+.eye-btn{padding:0 13px;border-radius:var(--r-sm);background:var(--tint);color:var(--sub)}
+.src-chip{display:inline-flex;align-items:center;gap:6px;background:var(--tint);color:var(--accent);border-radius:99px;padding:6px 8px 6px 14px;font-size:12.5px;font-weight:550;margin:0 6px 8px 0}
+.src-chip button{color:var(--accent);width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}
+.src-add{display:flex;gap:8px;margin-top:4px}
+.src-add .cfg-input{flex:1}
+.mini-btn{padding:0 18px;border-radius:var(--r-sm);background:var(--grad);color:#fff;font-size:13px;font-weight:600}
+.freq-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.freq-grid button{padding:11px 0;border-radius:var(--r-sm);background:var(--tint);color:var(--sub);font-size:12.5px;font-weight:500}
+.freq-grid button.on{background:var(--grad);color:#fff;font-weight:650}
+.big-btn{width:100%;padding:14px;border-radius:var(--r-md);font-size:14.5px;font-weight:650;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+.save-btn{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(10,138,98,.28)}
+.copy-btn{background:var(--card);border:1.5px solid var(--accent-2);color:var(--accent)}
+.toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:rgba(17,24,39,.92);color:#fff;padding:12px 22px;border-radius:99px;font-size:13px;z-index:99;opacity:0;pointer-events:none;transition:opacity .25s;max-width:85%;text-align:center;line-height:1.5}
+.toast.show{opacity:1}
+
+footer{text-align:center;padding:22px 16px 10px;font-size:10.5px;color:var(--mute);line-height:1.9}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:640px;background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:blur(18px);border-top:1px solid var(--line);z-index:50;display:flex;padding-bottom:var(--safe-b)}
+nav button{flex:1;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--mute)}
+nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--accent);font-weight:600}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5z"/></symbol>
+<symbol id="i-news" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/><path d="M19 2v4M17 4h4"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-thumb" viewBox="0 0 24 24"><path d="M7 10v11H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3z"/><path d="M7 11l4.5-8a2.4 2.4 0 0 1 3 2.5L14 9h5a2 2 0 0 1 2 2.3l-1.4 7A2 2 0 0 1 17.6 20H7"/></symbol>
+<symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.7 7-7 0-3-2-5.5-3.5-7C15 10 13 10.5 13 8c0-3-2-5-4-6 .5 3-1 4.5-2.5 6C5 9.5 5 12 5 15c0 4.3 3 7 7 7z"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4m8-4v4M3 10h18"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 16v-5m4 5V8m4 8v-3"/></symbol>
+<symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
+<symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7.5 15h9"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01A1.7 1.7 0 0 0 10.05 3.6V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01c.26.6.86 1 1.51 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.97z"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 4l3 3M14 7l3 3"/></symbol>
+<symbol id="i-rss" viewBox="0 0 24 24"><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</defs></svg>
+
+<div class="brand">
+  <div class="brand-row">
+    <span class="logo-badge"><svg class="ic" style="width:22px;height:22px"><use href="#i-bolt"/></svg></span>
+    <div>
+      <div class="brand-name">公众号情报站</div>
+      <div class="brand-sub">公众号监测 · 每周主题综述 · 趋势洞察</div>
+    </div>
+    <span class="ai-pill"><svg class="ic" style="width:12px;height:12px"><use href="#i-spark"/></svg>AI理解总结</span>
+  </div>
+  <div class="brand-meta"><svg class="ic" style="width:12px;height:12px"><use href="#i-rss"/></svg>公众号「<span id="mSrc"></span>」 · 数据截至 <span id="mDate"></span></div>
+</div>
+
+<section class="page active" id="page-feed">
+  <div class="src-bar" data-bar="feed"></div>
+  <div class="stats" id="statsBar"></div>
+  <div class="sec-head"><span class="t"><svg class="ic" style="width:16px;height:16px"><use href="#i-bolt"/></svg>今日焦点</span></div>
+  <div id="heroBox"></div>
+  <div class="sec-head"><span class="t"><svg class="ic" style="width:16px;height:16px"><use href="#i-news"/></svg>最新文章</span><span class="extra" id="feedCount"></span></div>
+  <div id="feedList"></div>
+</section>
+
+<section class="page" id="page-weekly">
+  <div class="src-bar" data-bar="weekly"></div>
+  <div class="sec-head"><span class="t"><svg class="ic" style="width:16px;height:16px"><use href="#i-cal"/></svg>每周主题总结</span>
+    <span class="extra"><span class="seg">
+      <button id="wkThisBtn" class="on" onclick="setWeek('this')">本周</button><button id="wkLastBtn" onclick="setWeek('last')">上周</button>
+    </span></span>
+  </div>
+  <div id="weeklyBody"></div>
+</section>
+
+<section class="page" id="page-insight">
+  <div class="src-bar" data-bar="insight"></div>
+  <div class="sec-head"><span class="t"><svg class="ic" style="width:16px;height:16px"><use href="#i-chart"/></svg>全年趋势洞察</span></div>
+  <div class="card">
+    <h3 class="ct">月度发文量与阅读热度</h3>
+    <div class="chart" id="chart"></div>
+    <div class="legend">
+      <span><i style="background:var(--accent-2)"></i>发文量（篇）</span>
+      <span><i style="background:#B9DCCB"></i>阅读量（万）</span>
+    </div>
+  </div>
+  <div class="card">
+    <h3 class="ct"><svg class="ic" style="width:15px;height:15px"><use href="#i-compass"/></svg>行业观察</h3>
+    <p class="insight-text" id="insightText"></p>
+  </div>
+  <div class="card">
+    <h3 class="ct"><svg class="ic" style="width:15px;height:15px"><use href="#i-flame"/></svg>历史热文 TOP10</h3>
+    <div id="hotList"></div>
+  </div>
+  <div class="card">
+    <h3 class="ct"><svg class="ic" style="width:15px;height:15px"><use href="#i-flask"/></svg>这个号的爆文公式</h3>
+    <div class="formula"><span class="tag">政策深读</span><span>650号文终极解读 7.6万阅读 / 8910次分享，政策拆解+泼冷水视角最受欢迎</span></div>
+    <div class="formula"><span class="tag">标杆项目</span><span>中国巨石、华电等头部企业项目经济学（投资额、收益率）是硬通货</span></div>
+    <div class="formula"><span class="tag">风险提示</span><span>『四道坎』『暴跌66%』等冷静派内容反向出圈，读者是要算账的决策者</span></div>
+  </div>
+</section>
+
+<section class="page" id="page-config">
+  <div class="sec-head"><span class="t"><svg class="ic" style="width:16px;height:16px"><use href="#i-gear"/></svg>配置</span></div>
+  <div class="card">
+    <label class="cfg-label"><svg class="ic" style="width:14px;height:14px"><use href="#i-key"/></svg>Qovia API Key<a class="apply-link" href="https://www.qovia.ai/zh/wechat-api/" target="_blank" rel="noopener">申请 Key<svg class="ic" style="width:11px;height:11px"><use href="#i-arrow"/></svg></a></label>
+    <div class="key-row">
+      <input class="cfg-input" id="cfgKey" type="password" placeholder="sk-qovia-..." autocomplete="off">
+      <button class="eye-btn" id="eyeBtn" onclick="toggleEye()"><svg class="ic" style="width:17px;height:17px"><use href="#i-eye"/></svg></button>
+    </div>
+    <p class="hint" style="margin-top:8px">Key 只保存在你手机的浏览器里，不会上传。Qovia 账户需有余额才能抓取新文章。</p>
+
+    <label class="cfg-label"><svg class="ic" style="width:14px;height:14px"><use href="#i-rss"/></svg>信息源公众号</label>
+    <div id="srcList"></div>
+    <div class="src-add">
+      <input class="cfg-input" id="srcInput" placeholder="输入公众号名称，如：绿电直连">
+      <button class="mini-btn" onclick="addSource()">添加</button>
+    </div>
+
+    <label class="cfg-label"><svg class="ic" style="width:14px;height:14px"><use href="#i-clock"/></svg>抓取频率</label>
+    <div class="freq-grid" id="freqGrid">
+      <button data-f="每1小时" onclick="setFreq('每1小时')">每1小时</button>
+      <button data-f="每3小时" onclick="setFreq('每3小时')">每3小时</button>
+      <button data-f="每天" onclick="setFreq('每天')">每天</button>
+      <button data-f="每周" onclick="setFreq('每周')">每周</button>
+    </div>
+  </div>
+  <button class="big-btn save-btn" onclick="saveCfg()">保存配置</button>
+  <button class="big-btn copy-btn" onclick="copyCfg()"><svg class="ic" style="width:16px;height:16px"><use href="#i-copy"/></svg>复制配置，发给豆包生效</button>
+  <div class="card" style="margin-top:14px">
+    <h3 class="ct" style="font-size:13px"><svg class="ic" style="width:14px;height:14px"><use href="#i-info"/></svg>工作方式</h3>
+    <p class="hint">这个页面是「展示 + 配置」入口，真正的抓取和 AI 总结由豆包在后台执行（浏览器直连 Qovia 有跨域限制）。<br><br>
+    改完配置后：① 点保存 → ② 点「复制配置」→ ③ 回到豆包对话粘贴发送。豆包会按新配置更新抓取计划和页面数据，更新后把最新链接发到对话里。</p>
+  </div>
+</section>
+
+<footer>
+  数据来源：Qovia API · 各信息源公众号<br>
+  AI 总结与趋势分析为文章要点解读，不构成投资建议<br>
+  <span id="ftDate"></span>
+</footer>
+
+<nav>
+  <button data-tab="feed" class="on" onclick="switchTab('feed')">
+    <svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5z"/></svg>动态
+  </button>
+  <button data-tab="weekly" onclick="switchTab('weekly')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4m8-4v4M3 10h18"/></svg>周报
+  </button>
+  <button data-tab="insight" onclick="switchTab('insight')">
+    <svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 16v-5m4 5V8m4 8v-3"/></svg>洞察
+  </button>
+  <button data-tab="config" onclick="switchTab('config')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01A1.7 1.7 0 0 0 10.05 3.6V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01c.26.6.86 1 1.51 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.97z"/></svg>配置
+  </button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+const D = __DATA__;
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic = (n,s)=>`<svg class="ic" style="width:${s}px;height:${s}px"><use href="#i-${n}"/></svg>`;
+const rv = a => String(a.r).includes('万')?parseFloat(a.r)*10000:parseFloat(a.r)||0;
+let cur = 0;
+const S = () => D.sources[cur];
+
+document.getElementById('mDate').textContent = S().dataUntil;
+document.getElementById('mSrc').textContent = S().name;
+document.getElementById('ftDate').textContent = '页面生成时间 ' + D.generatedAt + ' · 数据更新后最新链接见豆包对话';
+document.getElementById('insightText').textContent = S().insight;
+
+/* 数据概览 */
+function renderStats(){
+  const maxR = Math.max(...S().articles.map(rv));
+  const maxTxt = maxR>=10000? (maxR/10000).toFixed(1)+'万' : String(maxR);
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat"><div class="num">${S().total}</div><div class="lb">收录文章</div></div>
+    <div class="stat"><div class="num">${S().months[S().months.length-1].n}</div><div class="lb">本月发文</div></div>
+    <div class="stat"><div class="num">${maxTxt}</div><div class="lb">单篇最高阅读</div></div>`;
+}
+
+/* 头条焦点 */
+function renderHero(){
+  const a = S().articles[0];
+  document.getElementById('heroBox').innerHTML = `
+    <div class="hero">
+      <span class="hero-tag">${ic('news',11)} 最新发布 · ${a.d}</span>
+      <h2>${esc(a.t)}</h2>
+      ${a.ai?`<p class="hero-ai">${esc(a.ai)}</p>`:''}
+      <div class="hero-foot">
+        <span class="m">${ic('eye',13)} ${esc(a.r)}</span>
+        <span class="m">${ic('thumb',13)} ${a.l??'—'}</span>
+        <a class="hero-btn" href="${esc(a.u)}" target="_blank" rel="noopener">阅读原文 ${ic('arrow',12)}</a>
+      </div>
+    </div>`;
+}
+
+/* 紧凑文章列表 */
+function cell(a, maxR){
+  const hot = rv(a)>=maxR*0.5 && rv(a)>5000;
+  return `<a class="cell" href="${esc(a.u)}" target="_blank" rel="noopener">
+    <h3>${hot?`<span class="hot-mark">${ic('flame',14)}</span>`:''}${esc(a.t)}</h3>
+    ${a.ai?`<div class="ai-line"><b>AI</b>${esc(a.ai)}</div>`:''}
+    <div class="cell-meta">
+      <span class="m">${a.d.slice(5)}</span>
+      ${a.o?'<span class="badge-o">原创</span>':''}
+      <span class="m">${ic('eye',12)} ${esc(a.r)}</span>
+      <span class="m">${ic('thumb',12)} ${a.l??'—'}</span>
+      <span class="go">${ic('arrow',13)}</span>
+    </div>
+  </a>`;
+}
+function renderFeed(){
+  const maxR = Math.max(...S().articles.map(rv));
+  const list = S().articles.slice(1,10);
+  document.getElementById('feedList').innerHTML = list.map(a=>cell(a,maxR)).join('');
+  document.getElementById('feedCount').textContent = `最新10篇 / 共 ${S().total} 篇`;
+}
+/* 信息源筛选 */
+function renderSrcBars(){
+  document.querySelectorAll('.src-bar').forEach(bar=>{
+    bar.innerHTML = D.sources.map((src,i)=>
+      `<button class="src-pill ${i===cur?'on':''}" onclick="setSource(${i})">${ic('rss',12)} ${esc(src.name)}</button>`
+    ).join('') + `<button class="src-pill add" onclick="switchTab('config')">+ 添加信息源</button>`;
+  });
+}
+function setSource(i){
+  if(i===cur) return;
+  cur = i;
+  document.getElementById('mDate').textContent = S().dataUntil;
+  document.getElementById('mSrc').textContent = S().name;
+  document.getElementById('insightText').textContent = S().insight;
+  renderSrcBars(); renderStats(); renderHero(); renderFeed(); renderWeek(); renderChart(); renderHot();
+}
+
+/* 周报 */
+let wk='this';
+function setWeek(w){ wk=w;
+  document.getElementById('wkThisBtn').classList.toggle('on',w==='this');
+  document.getElementById('wkLastBtn').classList.toggle('on',w!=='this');
+  renderWeek();
+}
+function renderWeek(){
+  const w = wk==='this'? S().weekThis : S().weekLast;
+  document.getElementById('weeklyBody').innerHTML = `
+    <div class="card summary-card"><h3>${ic('spark',15)} ${esc(w.title)}</h3><p>${esc(w.text)}</p></div>
+    ${w.topics.map(t=>`<div class="card">
+      <div class="topic-name">${esc(t.name)}<span>${t.arts.length} 篇</span></div>
+      ${t.arts.map((a,i)=>`<div class="wk-art">
+        <span class="no">${String(i+1).padStart(2,'0')}</span>
+        <div style="flex:1;min-width:0"><a href="${esc(a.u)}" target="_blank" rel="noopener">${esc(a.t.slice(0,46))}${a.t.length>46?'…':''}</a>
+        ${a.ai?`<div class="hint">${esc(a.ai)}</div>`:''}</div>
+        <span class="r">${a.d.slice(5)}<br>${ic('eye',10)} ${esc(a.r)}</span>
+      </div>`).join('')}
+    </div>`).join('')}`;
+}
+
+/* 洞察 */
+function renderChart(){
+  const maxN=Math.max(...S().months.map(m=>m.n)), maxR=Math.max(...S().months.map(m=>m.r));
+  document.getElementById('chart').innerHTML = S().months.map(m=>`
+    <div class="bar-g" title="${m.m}: ${m.n}篇 / ${(m.r/10000).toFixed(1)}万阅读">
+      <div style="display:flex;gap:3px;align-items:flex-end;height:110px">
+        <div class="bar" style="height:${Math.max(m.n/maxN*100,4)}%;width:11px"></div>
+        <div class="bar reads" style="height:${Math.max(m.r/maxR*100,3)}%;width:11px"></div>
+      </div>
+      <div class="bar-lb">${m.m.replace('-','/')}</div>
+    </div>`).join('');
+}
+function renderHot(){
+  document.getElementById('hotList').innerHTML = S().hot.map((a,i)=>`
+    <div class="hot-art">
+      <span class="rank ${i<3?'rank-'+(i+1):'rank-n'}">${i+1}</span>
+      <div class="body">
+        <a href="${esc(a.u)}" target="_blank" rel="noopener">${esc(a.t.slice(0,50))}${a.t.length>50?'…':''}</a>
+        <div class="meta">${a.d} · ${ic('eye',11)} ${esc(a.r)} &nbsp; ${ic('thumb',11)} ${a.l??'—'}</div>
+        ${a.ai?`<div class="ai">${esc(a.ai)}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+function switchTab(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));
+  window.scrollTo(0,0);
+}
+
+/* 配置 */
+const CFG_KEY='lv_station_cfg_v1';
+let cfg={key:'',sources:['绿电直连'],freq:'每天'};
+try{const saved=JSON.parse(localStorage.getItem(CFG_KEY)||'null');if(saved&&saved.sources)cfg=saved;}catch(e){}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function toggleEye(){const i=document.getElementById('cfgKey');i.type=i.type==='password'?'text':'password';}
+function renderSources(){
+  document.getElementById('srcList').innerHTML=cfg.sources.map((s,i)=>
+    `<span class="src-chip">${esc(s)}<button onclick="delSource(${i})" title="删除">${ic('x',11)}</button></span>`).join('')||'<span class="hint">至少保留一个信息源</span>';
+}
+function addSource(){
+  const inp=document.getElementById('srcInput'),v=inp.value.trim();
+  if(!v)return;
+  if(cfg.sources.includes(v)){toast('这个公众号已经在列表里了');return;}
+  cfg.sources.push(v);inp.value='';renderSources();
+}
+function delSource(i){
+  if(cfg.sources.length<=1){toast('至少保留一个信息源');return;}
+  cfg.sources.splice(i,1);renderSources();
+}
+function setFreq(f){cfg.freq=f;
+  document.querySelectorAll('#freqGrid button').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
+}
+function saveCfg(){
+  cfg.key=document.getElementById('cfgKey').value.trim();
+  try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg));toast('配置已保存到本机');}catch(e){toast('浏览器禁止了本地存储，请用复制配置');}
+}
+function cfgText(){
+  return '【情报站配置更新】\nQovia Key: '+(cfg.key||'(未填写)')+'\n信息源: '+cfg.sources.join('、')+'\n抓取频率: '+cfg.freq+'\n请按此配置更新后台抓取计划，并重新生成页面数据。';
+}
+function copyCfg(){
+  saveCfg();
+  const text=cfgText();
+  const done=()=>toast('已复制！回到豆包对话粘贴发送即可生效');
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  }else fallbackCopy(text,done);
+}
+function fallbackCopy(text,done){
+  const ta=document.createElement('textarea');ta.value=text;
+  ta.style.cssText='position:fixed;top:0;left:0;opacity:0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');done();}catch(e){toast('复制失败，请手动记录配置');}
+  document.body.removeChild(ta);
+}
+function initCfg(){
+  document.getElementById('cfgKey').value=cfg.key||'';
+  renderSources();setFreq(cfg.freq);
+}
+renderSrcBars(); renderStats(); renderHero(); renderFeed(); renderWeek(); renderChart(); renderHot(); initCfg();
+</script>
+</body>
+</html>
