@@ -1,77 +1,116 @@
-# 公众号情报站 · WeChat Radar
+# wechat-radar · 公众号情报站
 
-一个给 AI Agent 用的 Skill：监测任意微信公众号，抓取最新文章，生成 **AI 文章点评 + 每周主题总结 + 全年趋势洞察**，最后产出一个**手机打开就能看的多信息源展示页面**。
+给 AI Agent（豆包 / WorkBuddy 等）用的开源能力包：**自动抓取公众号最新文章 → AI 写总结 → 生成手机可打开的情报页面 → 每天自动更新**。
 
-不需要自己部署服务器、不需要前端跨域折腾——数据抓取由 Agent 在后台执行，页面是纯静态 HTML（数据内嵌）。
+你只需要：一个 Qovia API Key + 想看的公众号名字，剩下的交给 Agent。
 
 ## 页面长什么样
 
-- **动态**：数据概览 → 今日焦点卡 → 紧凑文章列表（每篇带 AI 点评）
-- **周报**：本周/上周切换，综述 + 主题分组
-- **洞察**：月度发文/阅读趋势图、行业观察、历史热文 TOP10
-- **配置**：Qovia Key、信息源公众号管理、抓取频率（配置保存在本机浏览器）
-- 顶部**信息源筛选条**：多个公众号一键切换，三页内容联动
+| 动态（今日焦点 + 最新10篇 AI 点评） | 周报（本周主题总结） | 配置（Key 与信息源管理） |
+|---|---|---|
+| ![动态页](assets/screenshots/feed.png) | ![周报页](assets/screenshots/weekly.png) | ![配置页](assets/screenshots/config.png) |
 
-## 给 Agent 用（推荐）
+- 顶部信息源筛选 Tab，多个公众号一键切换
+- 固定网址，每天覆盖更新内容，收藏一次永久使用
+- 手机端优化，可「添加到主屏幕」当 App 用
 
-1. 把本仓库的 `wechat-radar` 目录放进你的 Agent 的 Skills 目录（或直接让它阅读 `SKILL.md`）
-2. 对它说：「用 wechat-radar 监测公众号 XXX，Key 是 sk-qovia-...，每天抓一次」
-3. Agent 按 SKILL.md 流程执行：抓数据 → 写 AI 总结 → 生成页面 → 托管并给你可交互链接
+---
 
-## 手动用（无 Agent 也可以跑前两步）
+## 第一步：申请 Qovia API Key（约 2 分钟）
+
+1. 打开 **https://www.qovia.ai/zh/wechat-api/** ，注册账号
+2. 在控制台创建 API Key，形如 `sk-qovia-xxxxxxxx`
+3. 新账号有免费试用额度；之后按次计费（约 $0.005/次，充 $5 能用很久）
+4. 额度与余额查询：**https://www.qovia.ai/zh/account/**
+
+> 文章搜索/抓取消耗额度；空结果与账户查询不计费。
+
+## 第二步：把这段话贴给豆包 / WorkBuddy
+
+复制下面的提示词，**把 Key 和公众号名换成你自己的**，直接发给你常用的 Agent：
+
+```text
+帮我搭建「公众号情报站」，参考开源能力包 https://github.com/rannnnyihan/wechat-radar
+（内含抓取脚本 scripts/ 与页面模板 assets/，请先阅读其 SKILL.md 和 README.md）。
+
+我的配置：
+- Qovia API Key：sk-qovia-换成你的Key
+- 信息源（可多个）：人民日报、赢商网、绿电直连
+- 更新频率：每天一次，早上 06:45
+
+要求：
+1. 抓取：优先用 POST https://api.qovia.ai/v1/search，JSON 参数
+   {"query":"该号常见主题词","platforms":["wechat"],"author":"公众号精确名","limit":20,"page":1}
+   用多个关键词轮询补全（如人民日报用 中国/新闻/社会，赢商网用 商业/购物中心/零售）；
+   只保留 author.name 与信息源名精确一致的文章，按 URL 去重。
+   若某号有 gh_ 完整档案（如绿电直连 mp_id=gh_0ad57a1aa80b），
+   也可用 GET /v1/raw/wechat/articles?mp_id=xxx 分页抓取（含阅读数）。
+2. 总结：为最新 10 篇写 AI 一句话点评（结合标题与 text 正文片段），
+   并生成本周主题总结与 2-4 个主题分组。
+3. 页面：生成手机端单文件 HTML（动态/周报/洞察/配置四页 + 顶部信息源筛选），
+   发布为可访问的固定链接，之后每次覆盖更新同一链接。
+4. 自动化：创建每天 06:45 的定时任务：增量抓新文章 → 更新 AI 总结 →
+   重新生成页面 → 覆盖发布，有更新就通知我；额度不足(402)时提醒我充值。
+```
+
+> 安全提示：API Key 只发给你信任的 Agent 对话，不要贴到公开群聊或评论区。
+
+## 第三步：告诉 Agent 你想看什么
+
+- **加/换公众号**：直接说「把 xx 加进信息源」即可。Agent 会用作者名精确匹配抓取，自动排除矩阵号/地方站
+- **改频率**：说「改成每 2 小时 / 每周一」等，Agent 会调整定时任务
+- **query 关键词怎么选**：用该号标题里的高频词。例如招投标类号用「中标、招标」，户外社团号用「户外、徒步、登山」
+
+---
+
+## 进阶：本地跑脚本（开发者）
 
 ```bash
 git clone https://github.com/rannnnyihan/wechat-radar.git
 cd wechat-radar
-cp config.example.json config.json   # 填入你的 Qovia Key 和公众号名称
-python3 scripts/fetch_wechat.py      # 抓取文章到 data/
+cp config.example.json config.json   # 填入 qovia_key、sources、search_method
+python3 scripts/fetch_wechat.py      # 抓取（增量去重）
 python3 scripts/gen_page.py          # 生成 output/公众号情报站.html
 ```
 
-只用脚本会得到统计版周报；AI 点评、主题分组、行业观察需要 LLM 撰写 `summaries/<公众号名>.json`（结构见 `scripts/gen_page.py` 注释），然后重新生成页面。把 HTML 部署到任意静态托管（GitHub Pages、Vercel、对象存储）即可手机访问。
+`config.json` 示例：
 
-## 你需要准备
+```json
+{
+  "qovia_key": "sk-qovia-你的Key",
+  "sources": ["绿电直连", "人民日报", "赢商网"],
+  "search_method": {
+    "人民日报": {"query": ["中国", "新闻", "社会"], "author": "人民日报"},
+    "赢商网": {"query": ["商业", "购物中心", "零售"], "author": "赢商网"}
+  },
+  "fetch": {"max_pages": 30, "page_size": 20}
+}
 
-- Qovia API Key（公众号数据服务）：https://www.qovia.ai/zh/wechat-api/
-- Python 3.8+，仅标准库，无依赖
+```
 
-## 设计说明
+定时更新可用系统 cron，例如每天 06:45：
 
-- **为什么页面不直接抓数据**：Qovia API 不允许浏览器跨域调用，所以架构是「Agent 后台抓取 + 纯静态展示页」
-- **AI 总结的依据**：公众号正文有反爬、摘要字段为空，AI 内容基于文章标题与阅读数据生成，页面明确标注为要点解读
-- **费用意识**：Qovia 按次计费、空结果免费，脚本带增量去重与 402 余额保护
+```cron
+45 6 * * * cd /path/to/wechat-radar && python3 scripts/fetch_wechat.py && python3 scripts/gen_page.py
+```
 
-## 免责声明
+生成的 HTML 为纯静态单文件，可部署到任意静态托管（GitHub Pages / Vercel / 对象存储），无需后端代理。
 
-本工具仅聚合公开公众号文章元数据，内容总结由 AI 生成，不构成任何投资建议。请遵守数据服务方与内容平台的使用条款。
+## 抓取路径怎么选
 
-## License
+| 公众号情况 | 推荐路径 |
+|---|---|
+| 有 gh_ 完整档案（如绿电直连） | `GET /v1/raw/wechat/articles?mp_id=gh_xxx`（含阅读数标签） |
+| 大多数公众号（人民日报/赢商网/交大野协…） | `POST /v1/search` + author 过滤（带正文摘要，无需 gh_ ID） |
+| 索引未收录的号 | 提供文章链接，用单篇接口 `article_metrics` / `article_content_v3` 实时抓取 |
 
-MIT
+## FAQ
 
+- **402**：额度耗尽，去 https://www.qovia.ai/zh/account/ 充值后重试
+- **upstream_rejected / 502**：Qovia 上游接口临时故障，稍后重试；不影响 `/v1/search` 主路径
+- **某号一直搜不到**：该号未被索引收录，发一篇文章链接给 Agent 走单篇接口
+- **浏览器直连 Qovia 报 CORS**：正常，Qovia 不允许浏览器跨域调用；请由 Agent 服务端或本地脚本发起请求，无需自建代理
 
 ---
 
-## v1.2 更新（2026-11-27）
-
-- **新增 `/v1/search` 抓取路径（推荐）**：`POST /v1/search` 以 `query`（关键词）+ `author`（公众号名）+ `platforms:["wechat"]` 直接搜索文章，**不需要 gh_ 内部 ID**，且返回正文摘要（`text`），AI 总结质量更高。在 `config.json` 中配置：
-
-```json
-"search_method": {
-  "人民日报": {"query": ["中国", "新闻", "社会"], "author": "人民日报"},
-  "赢商网": {"query": ["商业", "购物中心", "零售"], "author": "赢商网"},
-  "交大野协": {"query": ["户外", "徒步", "登山", "露营"], "author": "交大野协"}
-}
-```
-
-- 仅保留 `author.name` 精确匹配的条目（自动排除人民日报理论/评论等矩阵号、赢商网地方站）；按 URL 去重合并，支持 `since` 增量。
-- raw 路径保留：`account_search` 返回微信号格式时自动回退 `account_search_v2` 换算 `gh_` ID；失败给明确提示且不写空文件。
-- 页面模板支持空信息源「接入中」占位、多源筛选 Tab、阅读数缺失显示「—」。
-
-### 抓取路径选择建议
-
-| 情况 | 路径 |
-|---|---|
-| 有 gh_ 完整档案的号（如绿电直连） | raw articles（带阅读数标签） |
-| 其他号（人民日报/赢商网/交大野协等） | /v1/search + author 过滤 |
-| 索引完全未收录的号（如大单网） | 提供文章链接，走单篇接口 article_metrics / article_content_v3 |
+by [@rannnnyihan](https://github.com/rannnnyihan) · 基于 [Qovia](https://www.qovia.ai/zh/wechat-api/) 数据能力
